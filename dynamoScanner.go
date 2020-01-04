@@ -46,7 +46,6 @@ func getItem(page map[string]*dynamodb.AttributeValue) (DynamoItem, error) {
 
 //ScanItems ...
 func (db *DynamoScanner) ScanItems(process func(DynamoItem)) error {
-
 	if process == nil {
 		return errors.New("Missing input argument")
 	}
