@@ -6,19 +6,20 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/stretchr/testify/assert"
 )
 
 func (db *mockedDynamoScanner) ScanPages(input *dynamodb.ScanInput, handler func(*dynamodb.ScanOutput, bool) bool) error {
-	ouput := db.output["*dynamodb.ScanOutput"].(*dynamodb.ScanOutput)
+	output := db.output["*dynamodb.ScanOutput"].(*dynamodb.ScanOutput)
 	lastPage := db.output["bool"].(bool)
-	handler(ouput, lastPage)
+	handler(output, lastPage)
 	return db.err
 }
 
 func TestSuccessScanItems(t *testing.T) {
 
 	values := []map[string]*dynamodb.AttributeValue{
-		map[string]*dynamodb.AttributeValue{"Id": &dynamodb.AttributeValue{S: aws.String("STRING")}},
+		{"Id": &dynamodb.AttributeValue{S: aws.String("STRING")}},
 	}
 
 	output := &dynamodb.ScanOutput{
@@ -31,15 +32,10 @@ func TestSuccessScanItems(t *testing.T) {
 	scanner := NewDynamoScanner(mockClient, "TestTable")
 
 	total := 0
-	err := scanner.ScanItems(func(DynamoItem) {
+	assert.NoError(t, scanner.ScanItems(func(DynamoItem) {
 		total++
-	})
-	if err != nil {
-		t.Errorf("Error: %v\n", err)
-	}
-	if total != 1 {
-		t.Errorf("Expected one")
-	}
+	}), "Scan Items Error")
+	assert.Equal(t, 1, total, "Expected one")
 }
 
 func TestFailScanItems(t *testing.T) {
@@ -52,10 +48,7 @@ func TestFailScanItems(t *testing.T) {
 
 	scanner := NewDynamoScanner(mockClient, "TestTable")
 
-	err := scanner.ScanItems(func(DynamoItem) {})
-	if err != expectedError {
-		t.Errorf("Expected: %v\n", expectedError)
-	}
+	assert.Equal(t, scanner.ScanItems(func(DynamoItem) {}), expectedError, "Expected Error [%s]", expectedError)
 }
 
 func TestFailScanItemsWithNoPageHandler(t *testing.T) {
@@ -63,16 +56,13 @@ func TestFailScanItemsWithNoPageHandler(t *testing.T) {
 	mockClient.WithError(nil)
 
 	scanner := NewDynamoScanner(mockClient, "TestTable")
+	assert.Error(t, scanner.ScanItems(nil), "Expected error when nil argument")
 
-	err := scanner.ScanItems(nil)
-	if err == nil {
-		t.Errorf("Expected error\n")
-	}
 }
 
 func TestConcurrentScanItems(t *testing.T) {
 	values := []map[string]*dynamodb.AttributeValue{
-		map[string]*dynamodb.AttributeValue{"Id": &dynamodb.AttributeValue{S: aws.String("STRING")}},
+		{"Id": &dynamodb.AttributeValue{S: aws.String("STRING")}},
 	}
 
 	output := &dynamodb.ScanOutput{
@@ -88,15 +78,11 @@ func TestConcurrentScanItems(t *testing.T) {
 	done, err := scanner.ConcurrentScanItems(func(DynamoItem) {
 		total++
 	})
-	if err != nil {
-		t.Errorf("Error: %v\n", err)
-	}
-	if <-done != true {
-		t.Errorf("Expected true")
-	}
-	if total != 1 {
-		t.Errorf("Expected one")
-	}
+
+	assert.NoError(t, err, "Error: %v\n", err)
+	assert.True(t, <-done, "Expected true")
+	assert.Equal(t, 1, total, "Expected one")
+
 }
 
 func TestFailConcurrentScanItems(t *testing.T) {
@@ -107,7 +93,6 @@ func TestFailConcurrentScanItems(t *testing.T) {
 	scanner := NewDynamoScanner(mockClient, "TestTable")
 
 	_, err := scanner.ConcurrentScanItems(func(DynamoItem) {})
-	if err != expectedError {
-		t.Errorf("Error: %v\n", expectedError)
-	}
+	assert.EqualError(t, err, expectedError.Error(), "Error: %v\n", expectedError)
+
 }

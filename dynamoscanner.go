@@ -53,7 +53,7 @@ func (db *DynamoScanner) ScanItems(process func(DynamoItem)) error {
 		for _, p := range page.Items {
 			item, err := getItem(p)
 			if err != nil {
-				fmt.Println("Got error unmarshalling: " + err.Error())
+				fmt.Println("Got error un marshalling: " + err.Error())
 			} else {
 				process(item)
 			}
@@ -75,7 +75,7 @@ func (db *DynamoScanner) ConcurrentScanItems(process func(DynamoItem)) (chan boo
 		for _, p := range page.Items {
 			item, err := getItem(p)
 			if err != nil {
-				fmt.Println("Got error unmarshalling: " + err.Error())
+				fmt.Println("Got error un marshalling: " + err.Error())
 			} else {
 				db.data <- item
 			}
