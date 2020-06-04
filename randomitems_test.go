@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/stretchr/testify/assert"
 )
 
 func (db *mockedDynamoScanner) PutItemRequest(input *dynamodb.PutItemInput) (*request.Request, *dynamodb.PutItemOutput) {
@@ -18,10 +19,7 @@ func TestCreateRandomItems(t *testing.T) {
 	mockClient := &mockedDynamoScanner{}
 	mockClient.With(&request.Request{}).With(&dynamodb.PutItemOutput{})
 	scanner := NewDynamoScanner(mockClient, "TestTable")
-	err := scanner.CreateRandomItems(10)
-	if err != nil {
-		t.Errorf("Expected: %v\n", err)
-	}
+	assert.NoError(t, scanner.CreateRandomItems(10), "Go an error")
 }
 
 func TestFailCreateRandomItems(t *testing.T) {
@@ -29,8 +27,5 @@ func TestFailCreateRandomItems(t *testing.T) {
 	mockClient := &mockedDynamoScanner{}
 	mockClient.With(&request.Request{Error: expectedError}).With(&dynamodb.PutItemOutput{})
 	scanner := NewDynamoScanner(mockClient, "TestTable")
-	err := scanner.CreateRandomItems(10)
-	if err != expectedError {
-		t.Errorf("Expected: %v\n", expectedError)
-	}
+	assert.EqualError(t, scanner.CreateRandomItems(10), expectedError.Error())
 }
